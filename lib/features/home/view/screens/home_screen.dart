@@ -47,7 +47,7 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
             if(state is HomeNavigateToDriverInterfaceActionState){
-              driver =
+              final registeredDriver =
                   await Navigator.push(
 
                 context,
@@ -58,6 +58,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   const RegisterDriverScreen(),
                 ),
               );
+              if(registeredDriver != null){
+
+                setState(() {
+
+                  driver = registeredDriver;
+
+                });
+
+              }
 
             }
             if(state is HomeNavigateToDriverDashBoardActionState){
@@ -128,19 +137,27 @@ class _HomeScreenState extends State<HomeScreen> {
 
               onPressed: () async {
 
-                context.read<HomeBloc>().add(HomeNavigateToDriverInterfaceEvent());
+                if(driver == null){
 
-                if(driver!=null){
+                  context.read<HomeBloc>()
+                      .add(
+                    HomeNavigateToDriverInterfaceEvent(),
+                  );
 
+                }else{
 
-                  context.read<HomeBloc>().add(HomeNavigateToDriverDashboardEvent());
-
+                  context.read<HomeBloc>()
+                      .add(
+                    HomeNavigateToDriverDashboardEvent(),
+                  );
 
                 }
               },
 
-              child: const Text(
-                "Driver Interface",
+              child: Text(
+                driver == null
+                    ? "Register Driver"
+                    : "Driver Interface",
               ),
             ),
           ),

@@ -58,3 +58,4 @@ android/local.properties
 
 # Keystore
 *.keystore
+lib/firebase_options.dart

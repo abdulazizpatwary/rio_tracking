@@ -29,11 +29,14 @@ class RioDeepApp extends StatelessWidget {
 
         theme: ThemeData(
           appBarTheme: AppBarThemeData(
-            backgroundColor: Colors.amberAccent
+            backgroundColor: Colors.lightBlueAccent,
+            foregroundColor: Colors.black87
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amberAccent,
+              backgroundColor: Colors.lightBlueAccent,
+              foregroundColor: Colors.black87,
+
 
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
