@@ -131,7 +131,10 @@ class _MapScreenState extends State<MapScreen> {
         FloatingActionButton(
           heroTag: 'stop',
           onPressed: () {
-            context.read<TrackingBloc>().add(EndTrackingEvent());
+            routePoints.clear();
+
+            context.read<TrackingBloc>()
+                .add(EndTrackingEvent());
           },
           child: Icon(Icons.stop),
         ),
@@ -147,6 +150,9 @@ class _MapScreenState extends State<MapScreen> {
             }
             if (state is TrackingEndState) {
               routePoints.clear();
+
+
+              _polyline = null;
 
               vehicleMarkers.clear();
 
@@ -173,7 +179,9 @@ class _MapScreenState extends State<MapScreen> {
                         )
                         .toList();
 
-              totalVehicles = vehicles.length;
+              setState(() {
+                totalVehicles = vehicles.length;
+              });
 
               if (vehicles.isNotEmpty) {
                 final vehicle = vehicles.first;
@@ -225,17 +233,37 @@ class _MapScreenState extends State<MapScreen> {
               }
 
               if (_polyline == null) {
-                _polyline = await _polylineManager?.create(
-                  PolylineAnnotationOptions(
-                    geometry: LineString(coordinates: routePoints),
 
+                _polyline =
+                await _polylineManager?.create(
+
+                  PolylineAnnotationOptions(
+                    geometry: LineString(
+                      coordinates: routePoints,
+                    ),
                     lineWidth: 5,
                   ),
                 );
-              } else {
-                _polyline?.geometry = LineString(coordinates: routePoints);
 
-                await _polylineManager?.update(_polyline!);
+              } else {
+
+                try {
+
+                  _polyline!.geometry =
+                      LineString(
+                        coordinates: routePoints,
+                      );
+
+                  await _polylineManager
+                      ?.update(_polyline!);
+
+                } catch (e) {
+
+                  debugPrint(
+                    "Polyline update error: $e",
+                  );
+
+                }
               }
             }
           }
@@ -299,6 +327,18 @@ class _MapScreenState extends State<MapScreen> {
     return Column(
       children: [Text(name), Text('${value.toStringAsFixed(1)}$postFix')],
     );
+  }
+  @override
+  void dispose() {
+
+    routePoints.clear();
+
+    context.read<TrackingBloc>()
+        .add(
+      EndTrackingEvent(),
+    );
+
+    super.dispose();
   }
 }
 
