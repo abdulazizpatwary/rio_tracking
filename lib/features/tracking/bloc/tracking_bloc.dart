@@ -9,16 +9,18 @@ import 'package:rio_deep/features/vehicle/domain/entities/vehicle.dart';
 
 class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   final TrackingRepository repository;
-  final vehicleRepository = VehicleRepository();
+  final VehicleRepository vehicleRepository = VehicleRepository();
 
   StreamSubscription? _locationSubscription;
-  List<Vehicle> _vehicles = [];
   StreamSubscription? _vehicleSubscription;
+
+  List<Vehicle> _vehicles = [];
 
   TrackingBloc(this.repository) : super(TrackingInitialState()) {
     on<StartTrackingEvent>(startTrackingEvent);
     on<UpdateTrackingEvent>(updateTrackingEvent);
     on<EndTrackingEvent>(endTrackingEvent);
+
     on<TrackingErrorEvent>((event, emit) {
       emit(TrackingErrorState(errorMsg: event.message));
     });
@@ -32,40 +34,58 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
 
     try {
       await repository.requestPermission();
+
       await _vehicleSubscription?.cancel();
 
       _vehicleSubscription = repository.getVehicles().listen((vehicles) {
         _vehicles = vehicles;
-
-        final currentState = state;
-
-        if (currentState is TrackingUpdatedState) {
-          add(
-            UpdateTrackingEvent(
-              latitude: currentState.latitude,
-
-              longtitude: currentState.longtitude,
-
-              speed: currentState.speed,
-
-              distance: currentState.distance,
-
-              heading: currentState.heading,
-            ),
-          );
-        }
       });
 
       await _locationSubscription?.cancel();
 
       _locationSubscription = repository.getLocationStream().listen(
-        (position) {
+        (position) async {
+          if (_vehicles.isNotEmpty) {
+            final vehicle = _vehicles.first;
+
+            final updatedVehicle = Vehicle(
+              id: vehicle.id,
+              vehicleName: vehicle.vehicleName,
+
+              vehicleNumber: vehicle.vehicleNumber,
+
+              vehicleType: vehicle.vehicleType,
+
+              driverId: vehicle.driverId,
+
+              latitude: position.latitude,
+
+              longitude: position.longtitude,
+
+              speed: position.speed,
+
+              distance: position.distance,
+
+              heading: position.heading,
+
+              status: position.speed > 1 ? "Moving" : "Stopped",
+
+              lastUpdated: DateTime.now(),
+            );
+
+            await vehicleRepository.updateVehicle(updatedVehicle);
+          }
+
           add(
             UpdateTrackingEvent(
               latitude: position.latitude,
+
               longtitude: position.longtitude,
+
               speed: position.speed,
+
               distance: position.distance,
+
               heading: position.heading,
             ),
           );
@@ -80,34 +100,38 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     }
   }
 
+
   Future<void> updateTrackingEvent(
-    UpdateTrackingEvent event,
-    Emitter<TrackingState> emit,
-  ) async {
-    final updatedVehicles = _vehicles.map((vehicle) {
-      final updatedVehicle = Vehicle(
+      UpdateTrackingEvent event,
+      Emitter<TrackingState> emit,
+      ) async {
+
+    final updatedVehicles = _vehicles.map((vehicle){
+
+      return Vehicle(
+
         id: vehicle.id,
         vehicleName: vehicle.vehicleName,
+        vehicleNumber: vehicle.vehicleNumber,
         vehicleType: vehicle.vehicleType,
         driverId: vehicle.driverId,
 
         latitude: event.latitude,
         longitude: event.longtitude,
 
-        status: event.speed > 1 ? "Moving" : "Stopped",
-
         speed: event.speed,
         distance: event.distance,
         heading: event.heading,
 
-        lastUpdated: DateTime.now(),
+        status:
+        event.speed > 1
+            ? "Moving"
+            : "Stopped",
 
-        vehicleNumber: vehicle.vehicleNumber,
+        lastUpdated:
+        DateTime.now(),
       );
 
-      vehicleRepository.updateVehicle(updatedVehicle);
-
-      return updatedVehicle;
     }).toList();
 
     emit(
@@ -122,14 +146,15 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     );
   }
 
+
   Future<void> endTrackingEvent(
     EndTrackingEvent event,
     Emitter<TrackingState> emit,
   ) async {
     await _locationSubscription?.cancel();
-    _locationSubscription = null;
     await _vehicleSubscription?.cancel();
 
+    _locationSubscription = null;
     _vehicleSubscription = null;
 
     emit(TrackingEndState());
@@ -138,10 +163,8 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   @override
   Future<void> close() {
     _locationSubscription?.cancel();
-    _locationSubscription = null;
     _vehicleSubscription?.cancel();
 
-    _vehicleSubscription = null;
     return super.close();
   }
 }

@@ -120,10 +120,7 @@ class _MapScreenState extends State<MapScreen> {
               _polyline = null;
             }
 
-              context.read<TrackingBloc>().add(StartTrackingEvent());
-
-
-
+            context.read<TrackingBloc>().add(StartTrackingEvent());
           },
           child: Icon(Icons.play_arrow),
         ),
@@ -133,8 +130,7 @@ class _MapScreenState extends State<MapScreen> {
           onPressed: () {
             routePoints.clear();
 
-            context.read<TrackingBloc>()
-                .add(EndTrackingEvent());
+            context.read<TrackingBloc>().add(EndTrackingEvent());
           },
           child: Icon(Icons.stop),
         ),
@@ -143,178 +139,178 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   Future<void> _blocListener(BuildContext context, TrackingState state) async {
-            if (state is TrackingLoadingState) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Tracking Started')),
-              );
-            }
-            if (state is TrackingEndState) {
-              routePoints.clear();
+    if (state is TrackingLoadingState) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("Tracking Started")));
+    }
+
+    if (state is TrackingEndState) {
+      routePoints.clear();
+
+      vehicleMarkers.clear();
+
+      vehicleData.clear();
+
+      await _pointAnnotationManager?.deleteAll();
+
+      if (_polyline != null) {
+        await _polylineManager?.delete(_polyline!);
+
+        _polyline = null;
+      }
+
+      return;
+    }
+
+    if (state is TrackingUpdatedState) {
+      if (vehicleImages.isEmpty || _pointAnnotationManager == null) {
+        return;
+      }
+
+      final vehicles = widget.driverId == null
+          ? state.vehicles
+          : state.vehicles.where((v) => v.driverId == widget.driverId).toList();
+
+      if (vehicles.isEmpty) return;
+
+      // rebuild only when count changes
+      if (totalVehicles != vehicles.length) {
+        setState(() {
+          totalVehicles = vehicles.length;
+        });
+      }
+      final focusedVehicle = selectedVehicleId == null
+          ? vehicles.first
+          : vehicles.firstWhere(
+            (v) => v.id == selectedVehicleId,
+        orElse: () => vehicles.first,
+      );
+
+      await mapboxMap?.flyTo(
+
+        CameraOptions(
+
+          center: Point(
+            coordinates: Position(
+              focusedVehicle.longitude,
+              focusedVehicle.latitude,
+            ),
+          ),
+
+          zoom: 16,
+        ),
+
+        MapAnimationOptions(
+          duration: 500,
+        ),
+      );
 
 
-              _polyline = null;
+      for (final vehicle in vehicles) {
+        final point = Point(
+          coordinates: Position(vehicle.longitude, vehicle.latitude),
+        );
 
-              vehicleMarkers.clear();
-
-              await _pointAnnotationManager?.deleteAll();
-              if (_polyline != null) {
-                await _polylineManager?.delete(_polyline!);
-
-                _polyline = null;
-              }
-            }
-            if (state is TrackingErrorState) {
-              //debugPrint(state.errorMsg);
-            }
-
-            if (state is TrackingUpdatedState) {
-              if (vehicleImages.isEmpty) {
-                return;
-              }
-              final vehicles = widget.driverId == null
-                  ? state.vehicles
-                  : state.vehicles
-                        .where(
-                          (vehicle) => vehicle.driverId == widget.driverId,
-                        )
-                        .toList();
-
-              setState(() {
-                totalVehicles = vehicles.length;
-              });
-
-              if (vehicles.isNotEmpty) {
-                final vehicle = vehicles.first;
-                mapboxMap?.flyTo(
-                  CameraOptions(
-                    center: Point(
-                      coordinates: Position(
-                        vehicle.longitude,
-                        vehicle.latitude,
-                      ),
-                    ),
-                    zoom: 15,
-                  ),
-                  MapAnimationOptions(duration: 500),
-                );
-              }
-
-              for (final vehicle in vehicles) {
-                final point = Point(
-                  coordinates: Position(vehicle.longitude, vehicle.latitude),
-                );
-
-                if (vehicleMarkers.containsKey(vehicle.id)) {
-                  vehicleMarkers[vehicle.id]!.geometry = point;
-                  vehicleMarkers[vehicle.id]!.iconRotate = vehicle.heading;
-
-                  await _pointAnnotationManager?.update(
-                    vehicleMarkers[vehicle.id]!,
-                  );
-                } else {
-                  final marker = await _pointAnnotationManager?.create(
-                    PointAnnotationOptions(
-                      geometry: point,
-                      image: vehicleImages[vehicle.vehicleType],
-                      //iconRotate: vehicle.heading,
-                      iconSize: vehicle.id == selectedVehicleId ? 0.18 : 0.12,
-                    ),
-                  );
-
-                  vehicleMarkers[vehicle.id] = marker!;
-                  vehicleData[marker.id] = vehicle;
-                }
-              }
-              if (vehicles.isNotEmpty) {
+        vehicleData[vehicle.id] = vehicle;
 
 
-                routePoints.add(Position(vehicles.first.longitude,
-                  vehicles.first.latitude,));
-              }
+        if (vehicleMarkers.containsKey(vehicle.id)) {
+          final marker = vehicleMarkers[vehicle.id]!;
 
-              if (_polyline == null) {
+          marker.geometry = point;
 
-                _polyline =
-                await _polylineManager?.create(
+          marker.iconRotate = vehicle.heading;
 
-                  PolylineAnnotationOptions(
-                    geometry: LineString(
-                      coordinates: routePoints,
-                    ),
-                    lineWidth: 5,
-                  ),
-                );
+          await _pointAnnotationManager!.update(marker);
+        } else {
+          final marker = await _pointAnnotationManager!.create(
+            PointAnnotationOptions(
+              geometry: point,
 
-              } else {
+              image: vehicleImages[vehicle.vehicleType],
 
-                try {
+              iconSize: 0.15,
+            ),
+          );
 
-                  _polyline!.geometry =
-                      LineString(
-                        coordinates: routePoints,
-                      );
-
-                  await _polylineManager
-                      ?.update(_polyline!);
-
-                } catch (e) {
-
-                  debugPrint(
-                    "Polyline update error: $e",
-                  );
-
-                }
-              }
-            }
+          if (marker != null) {
+            vehicleMarkers[vehicle.id] = marker;
           }
+        }
+      }
+
+
+      final vehicle = vehicles.first;
+
+      final newPoint = Position(vehicle.longitude, vehicle.latitude);
+
+      if (routePoints.isEmpty || routePoints.last != newPoint) {
+        routePoints.add(newPoint);
+      }
+
+      if (_polyline == null) {
+        _polyline = await _polylineManager?.create(
+          PolylineAnnotationOptions(
+            geometry: LineString(coordinates: routePoints),
+
+            lineWidth: 5,
+          ),
+        );
+      } else {
+        _polyline!.geometry = LineString(coordinates: routePoints);
+
+        await _polylineManager!.update(_polyline!);
+      }
+    }
+  }
 
   Widget _buildMapheaderSection() {
     return Positioned(
-          top: 50,
-          right: 20,
-          left: 20,
-          child: BlocBuilder<TrackingBloc, TrackingState>(
-            builder: (context, state) {
-              double speed = 0;
-              double distance = 0;
-              String status = "Stopped";
+      top: 50,
+      right: 20,
+      left: 20,
+      child: BlocBuilder<TrackingBloc, TrackingState>(
+        builder: (context, state) {
+          double speed = 0;
+          double distance = 0;
+          String status = "Stopped";
 
-              if (state is TrackingUpdatedState &&
-                  state.vehicles.isNotEmpty) {
-                speed = state.speed;
+          if (state is TrackingUpdatedState && state.vehicles.isNotEmpty) {
+            speed = state.speed;
 
-                distance = state.distance;
+            distance = state.distance;
 
-                status = state.vehicles.first.status;
-              }
+            status = state.vehicles.first.status;
+          }
 
-              return Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(8),
+          return Card(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
 
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
 
+                children: [
+                  _buildSpeedDIstanceMeeter('Speed', speed),
+
+                  _buildSpeedDIstanceMeeter('Distance', distance),
+
+                  Column(children: [const Text("Status"), Text(status)]),
+                  Column(
                     children: [
-                      _buildSpeedDIstanceMeeter('Speed', speed),
+                      const Text("Vehicles"),
 
-                      _buildSpeedDIstanceMeeter('Distance', distance),
-
-                      Column(children: [const Text("Status"), Text(status)]),
-                      Column(
-                        children: [
-                          const Text("Vehicles"),
-
-                          Text(totalVehicles.toString()),
-                        ],
-                      ),
+                      Text(totalVehicles.toString()),
                     ],
                   ),
-                ),
-              );
-            },
-          ),
-        );
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Widget _buildSpeedDIstanceMeeter(String name, double value) {
@@ -328,17 +324,13 @@ class _MapScreenState extends State<MapScreen> {
       children: [Text(name), Text('${value.toStringAsFixed(1)}$postFix')],
     );
   }
+
   @override
   void dispose() {
-
     routePoints.clear();
 
-    context.read<TrackingBloc>()
-        .add(
-      EndTrackingEvent(),
-    );
+    context.read<TrackingBloc>().add(EndTrackingEvent());
 
     super.dispose();
   }
 }
-
