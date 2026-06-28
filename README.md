@@ -195,35 +195,35 @@ The tracking process:
 
 Current supports:
 
-✅ User Interface access
+ User Interface access
 
-✅ Driver Interface access
+ Driver Interface access
 
-✅ Driver registration
+ Driver registration
 
-✅ Vehicle registration
+ Vehicle registration
 
-✅ Vehicle update
+ Vehicle update
 
-✅ Vehicle deletion
+ Vehicle deletion
 
-✅ Vehicle type selection
+ Vehicle type selection
 
-✅ Driver-vehicle relationship
+ Driver-vehicle relationship
 
-✅ Multiple vehicle display
+ Multiple vehicle display
 
-✅ Live GPS tracking
+ Live GPS tracking
 
-✅ Vehicle information display
+ Vehicle information display
 
-✅ Start tracking
+ Start tracking
 
-✅ Stop tracking
+ Stop tracking
 
-✅ Firebase integration
+ Firebase integration
 
-✅ Mapbox integration
+ Mapbox integration
 
 ---
 
@@ -232,7 +232,7 @@ Current supports:
 ### Step 1: Clone Repository
 
 ```bash
-git clone YOUR_GITHUB_REPOSITORY_LINK
+git clone https://github.com/abdulazizpatwary/rio_tracking
 ```
 
 ### Step 2: Install Dependencies
@@ -279,19 +279,6 @@ flutter run
 * Driver Interface
 
 6. Test tracking functionality
-
----
-
-## Prototype Limitations
-
-Current prototype limitations:
-
-* Authentication system not implemented
-* Driver login not implemented
-* Vehicle image upload not implemented
-* Background tracking not implemented
-* Push notifications not implemented
-* Production deployment not implemented
 
 ---
 
