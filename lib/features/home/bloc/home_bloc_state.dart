@@ -1,0 +1,6 @@
+abstract class HomeBlocState {}
+class HomeBlocInitialState extends HomeBlocState{}
+abstract class HomeBlocActionState extends HomeBlocState{}
+class HomeNavigateToUserInterfaceActionState extends HomeBlocActionState{}
+class HomeNavigateToDriverInterfaceActionState extends HomeBlocActionState{}
+class HomeNavigateToDriverDashBoardActionState extends HomeBlocActionState{}

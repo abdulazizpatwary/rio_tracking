@@ -1,0 +1,4 @@
+enum TrackingMode {
+  real,
+  simulated,
+}
